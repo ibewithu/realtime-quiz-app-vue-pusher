@@ -47,7 +47,7 @@ export default {
   data() {
     return {
       roomId: '',
-      roomName: '',
+      roomName: this.room,
       teacherId: '',
       teacherName: this.username,
       quizId: '',
@@ -56,7 +56,7 @@ export default {
       questions: [
         {
           questionId: '',
-          questionImage: '',
+          questionImage: null,
           correctOption: '',
           isPlayed: false,
           question: "Question 1",                                            //alternative for image
@@ -64,7 +64,7 @@ export default {
         },
         {
           questionId: '',
-          questionImage: '',
+          questionImage: null,
           correctOption: '',
           isPlayed: false,
           question: "Question 2",                                            //alternative for image
@@ -102,9 +102,8 @@ export default {
         cluster: process.env.VUE_APP_CLUSTER,
         authEndpoint: `http://localhost:5000/pusher/auth/${this.role}/${this.username}`,
       })
-      console.log(this.channel)
 
-      this.channel = pusher.subscribe(`private-${this.room}`);
+      this.channel = pusher.subscribe(`private-${this.room}`)
 
       // binding to client event
       this.role === "student" &&
@@ -122,10 +121,16 @@ export default {
       //binding teacher to student join
       this.role === "teacher" &&
         this.channel.bind("student-joined", (m) => {
-          this.onlineUsersCount++;
-          this.onlineUsers.push(m);
-          console.log(m.username, ' joined')
-          console.log('current students ', this.onlineUsers)
+          if(this.students.findIndex(x=>x.studentId===m.studentId) === -1) {
+            this.students.push({
+              studentId: m.studentId,
+              studentName: m.studentName,
+              responses: [],
+            })
+            this.onlineUsersCount++;
+            console.log(m.username, ' joined')
+            console.log('current students ', this.students)
+          }
         });
 
       //binding teacher to student left
