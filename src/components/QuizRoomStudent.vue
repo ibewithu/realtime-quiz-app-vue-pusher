@@ -8,11 +8,11 @@
 
     <div class="col student-tab">
       <div class="current-question" v-if="currentQuestion !== null">
-        <div style="text-align: start; margin: 0 15px" class="question">{{ currentQuestion.question }}</div>
-        <ul class="option" style="margin-left: 15px">
+        <div class="question">{{ currentQuestion.question }}</div>
+        <ul class="option">
           <li style="text-align: start;" v-for="each in currentQuestion.option" :key="each">{{ each }}</li>
         </ul>
-				<button class="btn" @click="submitQuestion(username, currentQuestion)">Submit</button>
+		<button class="btn" @click="submitQuestion(username, currentQuestion)">Submit</button>
       </div>
 
       <h3 style="margin: auto" v-else>Waiting for live question</h3>
@@ -30,7 +30,7 @@ export default {
     return {
       roomId: '',
       roomName: this.room,
-      studentId: '',
+      studentId: 'uhsuyfs',
       studentName: this.username,
       currentQuestion: null,
       responses: [],
@@ -53,20 +53,36 @@ export default {
         this.channel.bind("client-send-question", (q) => {
             this.currentQuestion = q
         })
+
+        this.channel.bind("client-teacher-joined", m=>{
+            alert("teacher", m.username, " joined the quiz room")
+            this.channel.trigger("client-student-joined", {username: this.username, userId: this.studentId})
+        })
+
+        this.channel.bind("client-teacher-left", m=>{
+            alert("teacher", m.username, " left the quiz room")
+        })
+        
+        
     },
     unsubscribe() {
-        this.channel.trigger("client-student-left", { username: this.username })
+        this.channel.trigger("client-student-left", { username: this.username, userId: this.studentId })
         this.channel.unsubscribe(`private-${this.room}`);
     },
     submitQuestion(username, currentQuestion) {
-        this.channel.trigger("client-submit-question", {username: username, question: currentQuestion})
+        var b = this.channel.trigger("client-submit-question", {username: username, userId: this.studentId, question: currentQuestion})
+        console.log("b", b)
         this.currentQuestion=null
     }
   },
   created() {
-    this.subscribe();
-    this.channel.trigger("client-student-joined", {username: this.username})
+    this.subscribe()
     window.addEventListener('beforeunload', this.unsubscribe)
+  },
+  mounted() {
+    console.log(this.channel)
+    var a = this.channel.trigger("client-student-joined", {userId: this.studentId})
+    console.log("a", a)
   },
   beforeUnmount() {
     this.unsubscribe();
@@ -115,12 +131,6 @@ a {
   justify-content: center;
   align-items: start;
 }
-.teacher-tab {
-  margin: auto;
-  min-width: 70vw;
-  min-height: 80vh;
-  box-shadow: -2px -2px #7878ec;
-}
 .current-question {
   min-width: 80%;
   min-height: 210px;
@@ -130,6 +140,13 @@ a {
 }
 .current-question > * {
   margin: auto;
+}
+.question {
+    text-align: start;
+    margin: 0 15px;
+}
+.option {
+    margin-left: 15px;
 }
 .btn {
   margin: 0.2%;
@@ -141,11 +158,5 @@ a {
   cursor: pointer;
   text-decoration: none;
   font-size: 1.2rem;
-}
-.each-question {
-  margin-top: 5px;
-  padding-bottom: 5px;
-  border-bottom: 2px solid rgb(22, 237, 22);
-  border-radius: 5%;
 }
 </style>

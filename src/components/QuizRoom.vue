@@ -10,8 +10,8 @@
     <div class="col teacher-tab">
       <ul>
         <li class="each-question" v-for="item in questions" :key="item.question">
-          <div style="text-align: start; margin: 0 15px" class="question">{{ item.question }}</div>
-          <ul class="option" style="margin-left: 15px">
+          <div class="question">{{ item.question }}</div>
+          <ul class="option">
             <li style="text-align: start;" v-for="each in item.option" :key="each">{{ each }}</li>
           </ul>
           <button class="btn" @click="sendQuestion(item)">Send</button>
@@ -31,7 +31,7 @@ export default {
     return {
       roomId: '',
       roomName: this.room,
-      teacherId: '',
+      teacherId: 'ahiuaeh',
       teacherName: this.username,
       quizId: '',
       quizTitle: '',
@@ -69,12 +69,13 @@ export default {
     subscribe() {
       const pusher = new Pusher(process.env.VUE_APP_KEY, {
         cluster: process.env.VUE_APP_CLUSTER,
-        authEndpoint: `http://localhost:5000/pusher/auth/${this.role}/${this.username}`,
+        authEndpoint: `http://localhost:5000/pusher/auth/${this.username}`,
       })
 
       this.channel = pusher.subscribe(`private-${this.room}`)
 
-      this.channel.bind("student-joined", (m) => {
+      this.channel.bind("client-student-joined", (m) => {
+        console.log("std join", m)
         const idx = this.students.findIndex(x=>x.studentId===m.studentId)
         if(idx === -1) {
           this.students.push({
@@ -94,27 +95,33 @@ export default {
       })
 
       this.channel.bind("client-submit-question", (m) => {
-        console.log(m.username, ' submitted: ', m.question)
+        console.log(m.userId, ' submitted: ', m.question)
       })
 
       this.channel.bind("client-student-left", (m) => {
-        this.onlineUsersCount--;
-        this.onlineUsers.filter((each) => each.username !== m.username)
-        console.log(m.username, ' left')
+        const idx = this.students.findIndex(x=>x.studentId===m.studentId)
+        if(idx !== -1) {
+          if(this.students[idx].joined ===true) {
+            this.onlineUsersCount--;
+          }
+          this.students[idx].joined = false
+        }
       })
-
+      
+      var c = this.channel.trigger("client-teacher-joined", {username: this.username, userId: this.teacherId})
+      console.log("c", c)
     },
     unsubscribe() {
-      this.channel.trigger("client-teacher-left", { username: this.username })
+      this.channel.trigger("client-teacher-left", { username: this.username, userId: this.teacherId })
       this.channel.unsubscribe(`private-${this.room}`)
     },
     sendQuestion(payload) {
-      this.channel.trigger("client-send-question", payload)
+      var d = this.channel.trigger("client-send-question", payload)
+      console.log("d", d)
     },
   },
   created() {
     this.subscribe();
-    this.channel.trigger("client-teacher-joined", {username: this.username})
     window.addEventListener('beforeunload', this.unsubscribe)
   },
   beforeUnmount() {
@@ -156,29 +163,24 @@ a {
   margin: auto 5%;
   box-shadow: 2px 2px 2px 2px rgb(243, 82, 82);
 }
-.student-tab {
-  margin: auto;
-  min-width: 70vw;
-  min-height: 40vh;
-  box-shadow: -2px -2px #7878ec;
-  justify-content: center;
-  align-items: start;
-}
 .teacher-tab {
   margin: auto;
   min-width: 70vw;
   min-height: 80vh;
   box-shadow: -2px -2px #7878ec;
 }
-.current-question {
-  min-width: 80%;
-  min-height: 210px;
-  box-shadow: -2px -2px rgb(227, 68, 227);
-  justify-content: center;
-  align-items: center;
+.each-question {
+  margin-top: 5px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid rgb(22, 237, 22);
+  border-radius: 5%;
 }
-.current-question > * {
-  margin: auto;
+.question {
+  text-align: start;
+  margin: 0 15px;
+}
+.option {
+  margin-left: 15px;
 }
 .btn {
   margin: 0.2%;
@@ -190,11 +192,5 @@ a {
   cursor: pointer;
   text-decoration: none;
   font-size: 1.2rem;
-}
-.each-question {
-  margin-top: 5px;
-  padding-bottom: 5px;
-  border-bottom: 2px solid rgb(22, 237, 22);
-  border-radius: 5%;
 }
 </style>

@@ -23,7 +23,7 @@ const pusher = new Pusher({
 app.set('PORT', process.env.PORT || 5000);
 
 
-app.post("/pusher/auth//:username", function (req, res) {
+app.post("/pusher/auth/:username", function (req, res) {
   const socketId = req.body.socket_id
   const channel_name = req.body.channel_name
   const authResponse = pusher.authenticate(socketId, channel_name);
