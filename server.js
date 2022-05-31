@@ -1,22 +1,16 @@
-//required packages
 require('dotenv').config()
 const Pusher = require('pusher');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
-//server app
 const app = express();
 
-//required settings
 app.use(cors());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 
 
-//pusher server side
-//pusher object
-// console.log(process.env)
 const pusher = new Pusher({
   appId: process.env.VUE_APP_APP_ID,
   key: process.env.VUE_APP_KEY,
@@ -29,22 +23,11 @@ const pusher = new Pusher({
 app.set('PORT', process.env.PORT || 5000);
 
 
-app.post("/pusher/auth/:role/:username", function (req, res) {  //same endpoint as declared in auth endpoint on client side
-  const socketId = req.body.socket_id     //provided automatically by system
-  const channel_name = req.body.channel_name   //provided automatically bypusher
-  // const presenceData = {
-  //   user_id: socketId + req.params.username,   //You can have any unique id on your own
-  //   user_info: { name: req.params.username},
-  // }
-  const authResponse = pusher.authenticate(socketId, channel_name);  //presence data is required for presence channel 
+app.post("/pusher/auth//:username", function (req, res) {
+  const socketId = req.body.socket_id
+  const channel_name = req.body.channel_name
+  const authResponse = pusher.authenticate(socketId, channel_name);
   console.log('server auth', authResponse)
-  const role=req.params.role
-  if(role==="student") {
-    const data = {
-      username: req.params.username
-    }                  
-    pusher.trigger(channel_name, 'student-joined', data)
-}
   res.send(authResponse);
 })
 

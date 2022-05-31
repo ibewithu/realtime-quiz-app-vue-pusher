@@ -1,13 +1,13 @@
 <template>
-  <!-- <div class="row"> -->
+
   <div class="col container">
     <div class="col">
-      <h3>Hello, {{ username }}</h3>
+      <h3>Hello, teacher {{ username }}</h3>
       <h2>Welcome to {{ room }} <br /></h2>
-      <h2 v-if="role === 'teacher'">Students online: {{ onlineUsersCount }}</h2>
+      <h2>Students online: {{ onlineUsersCount }}</h2>
     </div>
 
-    <div v-if="role === 'teacher'" class="col teacher-tab">
+    <div class="col teacher-tab">
       <ul>
         <li class="each-question" v-for="item in questions" :key="item.question">
           <div style="text-align: start; margin: 0 15px" class="question">{{ item.question }}</div>
@@ -18,26 +18,9 @@
         </li>
       </ul>
     </div>
-
-    <div v-if="role === 'student'" class="col student-tab">
-      <div class="current-question" v-if="currentQuestion !== null">
-        <div style="text-align: start; margin: 0 15px" class="question">{{ currentQuestion.question }}</div>
-        <ul class="option" style="margin-left: 15px">
-          <li style="text-align: start;" v-for="each in currentQuestion.option" :key="each">{{ each }}</li>
-        </ul>
-				<button class="btn" @click="submitQuestion(username, currentQuestion)">Submit</button>
-      </div>
-
-      <h3 style="margin: auto" v-else>Waiting for live question</h3>
-    </div>
-
-    <!-- <div>
-        <input type="text" v-model.lazy="message" placeholder="chat here...." />
-        <button class="button-submit" @click="handleSubmit">Send</button>
-      </div> -->
       
   </div>
-  <!-- </div> -->
+
 </template>
 
 <script>
@@ -71,21 +54,7 @@ export default {
           option: ["option 1", "option 2", "option 3", "option 4"],          //alternative for image
         },
       ],
-      students: [
-        {
-          studentId: '',
-          studentName: '',
-          responses: [
-            {
-              questionId: '',
-              selectedOption: '',
-              attempted: false,
-              status: false,
-              score: 0,
-            }
-          ],
-        }
-      ],
+      students: [],
       channel: null,
       onlineUsersCount: 0,
       onlineUsers: [],
@@ -105,61 +74,47 @@ export default {
 
       this.channel = pusher.subscribe(`private-${this.room}`)
 
-      // binding to client event
-      this.role === "student" &&
-        this.channel.bind("client-send-question", (q) => {
-          console.log('question received', q)
-          this.currentQuestion = q
-        })
-
-      //binding teacher to student submit question
-      this.role === "teacher" &&
-        this.channel.bind("client-submit-question", (m) => {
-          console.log(m.username, ' submitted: ', m.question)
-        });
-
-      //binding teacher to student join
-      this.role === "teacher" &&
-        this.channel.bind("student-joined", (m) => {
-          if(this.students.findIndex(x=>x.studentId===m.studentId) === -1) {
-            this.students.push({
-              studentId: m.studentId,
-              studentName: m.studentName,
-              responses: [],
-            })
-            this.onlineUsersCount++;
-            console.log(m.username, ' joined')
-            console.log('current students ', this.students)
+      this.channel.bind("student-joined", (m) => {
+        const idx = this.students.findIndex(x=>x.studentId===m.studentId)
+        if(idx === -1) {
+          this.students.push({
+            studentId: m.studentId,
+            studentName: m.studentName,
+            joined: true,
+            responses: [],
+          })
+          this.onlineUsersCount++;
+        }
+        else {
+          if(this.students[idx].joined === false) {
+            this.onlineUsersCount++
           }
-        });
+          this.students[idx].joined = true
+        }
+      })
 
-      //binding teacher to student left
-      this.role === "teacher" &&
-        this.channel.bind("client-student-left", (m) => {
-          this.onlineUsersCount--;
-          this.onlineUsers.filter((each) => each.username !== m.username)
-          console.log(m.username, ' left')
-        });
+      this.channel.bind("client-submit-question", (m) => {
+        console.log(m.username, ' submitted: ', m.question)
+      })
+
+      this.channel.bind("client-student-left", (m) => {
+        this.onlineUsersCount--;
+        this.onlineUsers.filter((each) => each.username !== m.username)
+        console.log(m.username, ' left')
+      })
+
     },
     unsubscribe() {
-      this.role === "student" &&
-        this.channel.trigger("client-student-left", { username: this.username })
-      this.channel.unsubscribe(`private-${this.room}`);
+      this.channel.trigger("client-teacher-left", { username: this.username })
+      this.channel.unsubscribe(`private-${this.room}`)
     },
     sendQuestion(payload) {
-      //triggering from client side
-      var wasTriggered = this.channel.trigger("client-send-question", payload)
-      console.log('send qustion triggered: ', wasTriggered)
-      //things to do after sending
+      this.channel.trigger("client-send-question", payload)
     },
-		submitQuestion(username, currentQuestion) {
-			var wasTriggered = this.channel.trigger("client-submit-question", {username: username, question: currentQuestion})
-      console.log('submit question triggered: ', wasTriggered)
-			this.currentQuestion=null
-		}
   },
   created() {
     this.subscribe();
+    this.channel.trigger("client-teacher-joined", {username: this.username})
     window.addEventListener('beforeunload', this.unsubscribe)
   },
   beforeUnmount() {

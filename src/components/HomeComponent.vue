@@ -4,31 +4,18 @@
     <br />
     <h3>Welcome {{role}} </h3>
 
-    <!-- <div class="row"> -->
-      <!-- <div class="col"> -->
-        <!-- <div class="room-box col"> -->
-          <div class="col room-box">
-            <h3 style="text-decoration: underline;">Available Quiz Rooms</h3>
-            <!-- <div class="public-rooms"> -->
-              <div class="rooms row">
-                <router-link :to="`/quiz-room/${room}`" class="btn" v-for="room in publicRooms" :key="room">{{ room }} </router-link>
-              </div>
-            <!-- </div> -->
-          </div>
-          <!-- <div class="create-tab">
-            <h2 class="question">Above rooms are not available?</h2>
-            <button v-if="role==='teacher'" class="create-button">
-              <router-link to="/create-room/create"> Create One </router-link>
-            </button>
-            <button v-if="role==='student'" class="create-button">
-              <router-link to="/create-room/join">
-                Join your teachers' room
-              </router-link>
-            </button>
-          </div> -->
-        <!-- </div> -->
+    <div class="col room-box">
+      <h3 style="text-decoration: underline;">Available Quiz Rooms</h3>
+      <!-- <div class="public-rooms"> -->
+        <div class="rooms row" v-if="role==='teacher'">
+          <router-link :to="`/quiz-room/teacher/${room}`" class="btn" v-for="room in publicRooms" :key="room">{{ room }} </router-link>
+        </div>
+        <div class="rooms row" v-else>
+          <router-link :to="`/quiz-room/student/${room}`" class="btn" v-for="room in publicRooms" :key="room">{{ room }} </router-link>
+        </div>
       <!-- </div> -->
-    <!-- </div> -->
+    </div>
+
   </div>
 </template>
 
