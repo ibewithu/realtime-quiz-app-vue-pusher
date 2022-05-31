@@ -71,9 +71,7 @@ export default {
         cluster: process.env.VUE_APP_CLUSTER,
         authEndpoint: `http://localhost:5000/pusher/auth/${this.username}`,
       })
-
       this.channel = pusher.subscribe(`private-${this.room}`)
-
       this.channel.bind("client-student-joined", (m) => {
         console.log("std join", m)
         const idx = this.students.findIndex(x=>x.studentId===m.studentId)
@@ -93,11 +91,9 @@ export default {
           this.students[idx].joined = true
         }
       })
-
       this.channel.bind("client-submit-question", (m) => {
-        console.log(m.userId, ' submitted: ', m.question)
+        console.log(m.username, ' submitted: ', m.question)
       })
-
       this.channel.bind("client-student-left", (m) => {
         const idx = this.students.findIndex(x=>x.studentId===m.studentId)
         if(idx !== -1) {
@@ -107,21 +103,19 @@ export default {
           this.students[idx].joined = false
         }
       })
-      
-      var c = this.channel.trigger("client-teacher-joined", {username: this.username, userId: this.teacherId})
-      console.log("c", c)
     },
     unsubscribe() {
-      this.channel.trigger("client-teacher-left", { username: this.username, userId: this.teacherId })
+      this.channel.trigger("client-teacher-left", {username: this.username})
       this.channel.unsubscribe(`private-${this.room}`)
     },
     sendQuestion(payload) {
-      var d = this.channel.trigger("client-send-question", payload)
-      console.log("d", d)
+      this.channel.trigger("client-send-question", payload)
     },
   },
   created() {
-    this.subscribe();
+    this.subscribe()
+    setTimeout(() => {this.channel.trigger("client-teacher-joined", {username: this.username})
+    }, 400)
     window.addEventListener('beforeunload', this.unsubscribe)
   },
   beforeUnmount() {

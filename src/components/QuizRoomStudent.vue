@@ -55,12 +55,12 @@ export default {
         })
 
         this.channel.bind("client-teacher-joined", m=>{
-            alert("teacher", m.username, " joined the quiz room")
+            console.log("teacher", m.username, " joined the quiz room")
             this.channel.trigger("client-student-joined", {username: this.username, userId: this.studentId})
         })
 
         this.channel.bind("client-teacher-left", m=>{
-            alert("teacher", m.username, " left the quiz room")
+            console.log("teacher", m.username, " left the quiz room")
         })
         
         
